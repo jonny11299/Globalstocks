@@ -1,0 +1,8 @@
+Uses packages:
+
+For day trading information:
+Stooq
+
+For market cap calculations, uses:
+site.financialmodelingprep.com
+
