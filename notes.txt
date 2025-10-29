@@ -3,6 +3,16 @@ Uses packages:
 For day trading information:
 Stooq
 
-For market cap calculations, uses:
-site.financialmodelingprep.com
+For market cap calculations, use:
+https://www.macrotrends.net/stocks/charts/NVDA/nvidia/shares-outstanding
+^ Just look up the historic shares-outstanding from this table, and see how it changes over time.
 
+
+
+
+
+
+
+Todo:
+
+1. Everything
