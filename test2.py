@@ -2,7 +2,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import os
 from stonk import Stonk
-from dirscanner import scan_directory_tree
+from tickerSource import TickerSource
 
 
 
@@ -80,7 +80,7 @@ def readingFromFilesTesting():
     print("Reading zoo.uk.txt")
     stock2 = Stonk.fromfile("data/stooq/uk/lse stocks/zoo.uk.txt")
     stock2.print()
-    
+
 
     # The below requires matplotlib
     # I'll need to figure out how to export it.
@@ -104,4 +104,82 @@ def nextTradingDayTest():
         nvda.nextTradingDay(day2)
 
 
-readingFromFilesTesting()
+# readingFromFilesTesting()
+
+def tickerSourceTesting():
+    src = TickerSource()
+    src.numStocksLoaded()
+    # src.checkTickers()
+
+    # get 10 random tickers, see if we can find their filepath
+    print("------- Testing filepath access with random tickers ---------")
+    print("----- Head: -----")
+    randomTickers = TickerSource.df.sample(n=100)
+    print(randomTickers.head(30))
+    print(type(randomTickers))
+
+    print("----- OS Test: -----")
+    # Learned about "iter tuples" and "iterrows()" I guess.
+    for row in randomTickers.itertuples(index=False):
+        ticker = row.TICKER
+        country = row.COUNTRY
+        testResult = src.testPath(ticker, country)
+
+
+
+
+tickerSourceTesting()
+
+# Alright, sick, I did it. I built a way to access the local files.
+# Now, I need to use this filepath to create a Stonk object
+# And I need to modify the Stonk object to intelligently use local access before global access.
+# Maybe it'll test dates first, then try local access, and if failed, resort to API access
+# I should wrap an API call in a function that always knows when it makes an API call though, and prints it out.
+# That should be a fairly big alert.
+# like "APIString, Reason" so that you have to say why you're doing it.
+    
+
+
+
+
+'''
+From GPT: 
+
+✅ Correct ways to iterate rows
+Option 1: iterrows() (most common)
+for idx, row in randomTickers.iterrows():
+    ticker = row["TICKER"]
+    country = row["COUNTRY"]
+    path = src.getPath(ticker, country, True)
+    print(ticker, country, path)
+
+
+row is a Series representing a single row.
+
+idx is the row index.
+
+Works perfectly for accessing column values.
+
+Option 2: itertuples() (faster, more memory-efficient)
+for row in randomTickers.itertuples(index=False):
+    ticker = row.TICKER
+    country = row.COUNTRY
+    path = src.getPath(ticker, country, True)
+    print(ticker, country, path)
+
+
+row is a namedtuple, so you can access columns as attributes.
+
+Faster than iterrows() if performance matters.
+
+Option 3: Vectorized (avoid explicit loop)
+paths = [
+    src.getPath(ticker, country, True)
+    for ticker, country in zip(randomTickers["TICKER"], randomTickers["COUNTRY"])
+]
+
+
+Pure Python list comprehension.
+
+Often the cleanest if you don’t need the row index.
+'''

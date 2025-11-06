@@ -49,7 +49,7 @@ class Stonk:
                 print("Ticker:")
                 print(ticker)
                 print(f"Type: {type(ticker)}")
-                symbol, countryCode = ticker.split(".") # getting a bug, but we're close
+                symbol, countryCode = ticker.split(".") 
                 stonk = cls(symb=symbol, country=countryCode)
 
                 # may result in weird behavior where, if the condition is invalid somehow, then
@@ -301,6 +301,8 @@ class Stonk:
 # Doesn't seem like we need any async code, yet, though. I think that's excessive.
 # If we need to wait for every single stooq call sequentially, we can do that.
 # Shouldn't be abusing stooq calls anyways...
+
+# We'll need to learn logging instead of printing everything out verbose.
         
 
 '''On-Balance Volume (OBV)

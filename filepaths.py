@@ -1,1 +1,3 @@
-filepaths.py
+# COUNTRY,EXCHANGE,TICKER,FILEPATH
+
+
