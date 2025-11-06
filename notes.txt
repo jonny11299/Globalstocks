@@ -11,8 +11,282 @@ https://www.macrotrends.net/stocks/charts/NVDA/nvidia/shares-outstanding
 
 
 
+Progress:
+1. Day 1 (oct 28 25): Setup Github stuff, built out the Stonk class to encapsulate single-stock behavior
 
 
-Todo:
+Future:
 
-1. Everything
+fun / quick -- estimate money moved IN vs OUT of a symbol for a time period
+
+1. Make a list of the top 100 stocks for the most economically active 20 countries
+    - maybe useful for this: https://www.marketcapwatch.com/?utm_source=chatgpt.com
+2. Categorize them based on sector
+3. Encapsulate saving json files for each of those symbols
+4. Eventually, I can aggregate the data on how much volume is moving per sector 
+5. Clearly I will want to estimate money moved IN vs OUT of a symbol for a time period
+
+
+
+Not to lose sight of:
+1. I'm not able to see when a company makes new shares for itself (i.e. market cap increase / decrease)
+    - Maybe I can (and should) manually pull that data for each of my chosen stocks
+    - Oh shit, it's up here: https://www.macrotrends.net/stocks/charts/NVDA/nvidia/shares-outstanding
+
+
+
+
+
+
+
+
+OBV Explanation:
+
+What You Can Infer From Your Data
+With just OHLCV (Open, High, Low, Close, Volume), you can estimate sentiment using several approaches:
+1. Price-Volume Relationship
+
+Close > Open + High Volume = Likely net buying pressure (buyers willing to pay up)
+Close < Open + High Volume = Likely net selling pressure (sellers aggressive)
+Close ≈ Open + High Volume = Indecision/churn
+
+2. On-Balance Volume (OBV)
+A simple but effective indicator:
+If Close > Previous Close: OBV += Volume
+If Close < Previous Close: OBV -= Volume
+If Close = Previous Close: OBV unchanged
+```
+Rising OBV = accumulation, Falling OBV = distribution
+
+### 3. **Money Flow Indicators**
+Calculate a "typical price" and weight by volume:
+```
+Typical Price = (High + Low + Close) / 3
+Money Flow = Typical Price × Volume
+
+If Typical Price > Previous Typical Price: Positive Money Flow
+If Typical Price < Previous Typical Price: Negative Money Flow
+```
+
+### 4. **Accumulation/Distribution Line**
+```
+Close Location Value (CLV) = ((Close - Low) - (High - Close)) / (High - Low)
+A/D = Previous A/D + (CLV × Volume)
+For Sector-Level Analysis
+For your "money flows into sectors" goal, I'd recommend:
+
+Calculate OBV or A/D for each stock
+Aggregate by sector (market-cap weighted)
+Track the trend of these aggregated indicators over time
+
+This will give you a sense of whether money is flowing into or out of sectors, even though you don't have tick-by-tick buy/sell data.
+
+
+
+
+Candlestick Anatomy
+Each bar represents one trading period (in this case, one day):
+The "Body" (the thick colored rectangle)
+
+Top of body = whichever is higher: Open or Close
+Bottom of body = whichever is lower: Open or Close
+Green/White body = Close > Open (price went up that day)
+Red/Black body = Close < Open (price went down that day)
+
+The "Wicks" or "Shadows" (the thin lines)
+
+Upper wick = extends from top of body to the High
+Lower wick = extends from bottom of body to the Low
+
+
+
+
+Here's how we proceed:
+
+1. Make an excel document showing all of the different pieces of information that we need:
+    - Countries that are economically active in trading stocks, and accessable from the website
+    - Top 30 stocks for each of them each year
+    - Sectors
+
+
+2. Figure out how we turn the data that we need. Remember -- we are searching for which sectors are active in each country.
+
+3. Figure out how to render beautiful graphs.
+
+
+
+
+
+
+Stock Exchanges on Stooq:
+
+NYSE (New York Stock Exchange) - United States
+Nasdaq - United States
+NYSE MKT (formerly AMEX) - United States
+LSE (London Stock Exchange) - United Kingdom
+TSE (Tokyo Stock Exchange) - Japan
+HKEx (Hong Kong Stock Exchange) - Hong Kong
+Xetra (Deutsche Börse) - Germany
+WSE (Warsaw Stock Exchange) - Poland
+BÉT (Budapest Stock Exchange) - Hungary
+
+That's 9 stock exchanges total across 8 countries/regions.
+Additional markets Stooq covers (not individual stocks, but indices, futures, etc.):
+
+Indices from Asia, Europe, and the Americas
+Currency pairs
+Bonds
+Commodities (energy, metals, grains)
+
+
+
+
+Finding out which stocks are useful per year:
+
+The Challenge:
+Getting historical lists of top stocks by year is actually quite difficult for free. Here's what I found:
+What's NOT freely available:
+
+Historical index constituent lists (which stocks were in the S&P 500 in 1995, 2000, 2005, etc.) typically require paid databases like:
+
+Bloomberg Terminal
+Refinitiv Datastream
+WRDS (Wharton Research Data Services)
+
+What IS available (but with limitations):
+
+Current index compositions - Wikipedia and exchange websites have current lists
+Some historical snapshots - Occasionally you can find year-end lists on Wikipedia or archive sites
+
+
+
+
+I'm going to proceed by:
+1. Downloading all stocks from Stooq.com
+2. Estimating the annual $$$ traded each year, and whether it rose or fell (via monthly buy/sell/trade data) 
+3. Ranking them
+
+
+
+talking point in interviews: "I processed 30 years of trading data across 9 exchanges to identify the most actively traded securities each year"
+"I also ranked by sector to see, in each year, which sectors were more economically active than others".
+
+
+Free Historical Market Data:
+https://stooq.com/db/h/
+
+Download the "ASCII" folder for daily trade data, for each country.
+
+
+
+I chose to ignore ETFs even though they may be useful for categorizing stocks.
+It's a complicating step to track ETFs because I can track each individual stock's progress.
+I don't necessarily need to know an aggregate fund's progress, one that is basically another portfolio in its own right.
+
+
+
+I now have downloaded all of the domestic and international stocks freely available to me on Stooq.
+
+I would like to take every symbol, look at its:
+1. Start date traded
+2. End date traded 
+3. Volume of trades each year (calculated monthly)
+4. Monetary value of trades each year (calculated monthly)
+5. Above, adjusted for buy/sell (positive or negative)
+
+But first, let's get each of the symbols and where their info lies.
+
+
+Then, we'll have to use Yahoo to look up sector information for each symbol. 
+
+
+
+
+
+
+
+
+Delete this later:
+Perfect — that’s exactly what pandas is for. 🧠
+
+Here’s how you can load one of your Stooq .txt files (like alph.uk.txt) into a DataFrame and start working with it:
+
+🐼 Step 1: Import and read the file
+import pandas as pd
+
+# Path to your file
+path = "data/stooq/uk/lse stocks/alph.uk.txt"
+
+# Read the file
+df = pd.read_csv(path)
+
+
+Because your file is comma-separated and has headers already, pd.read_csv automatically recognizes the columns.
+To confirm:
+
+print(df.head())
+
+
+You should see:
+
+     <TICKER>  <PER>     <DATE>  <TIME>  <OPEN>  <HIGH>  <LOW>  <CLOSE>   <VOL>  <OPENINT>
+0     ALPH.UK      D  20221222       0    1895    1930   1860    1880   127253         0
+1     ALPH.UK      D  20221223       0    1880    1930   1860    1890     2302         0
+...
+
+🧹 Step 2: Clean up column names (optional)
+
+Those < > brackets are annoying — you can strip them easily:
+
+df.columns = df.columns.str.strip("<>").str.upper()
+
+
+Now the columns will look like:
+
+['TICKER', 'PER', 'DATE', 'TIME', 'OPEN', 'HIGH', 'LOW', 'CLOSE', 'VOL', 'OPENINT']
+
+🧮 Step 3: Convert numeric and date columns
+
+By default, all data loads as strings.
+You’ll want to make DATE a datetime and price columns numeric:
+
+df["DATE"] = pd.to_datetime(df["DATE"], format="%Y%m%d")
+for col in ["OPEN", "HIGH", "LOW", "CLOSE", "VOL", "OPENINT"]:
+    df[col] = pd.to_numeric(df[col])
+
+🧠 Step 4: Perform calculations
+
+Example 1 — Create a new column for the daily price range:
+
+df["RANGE"] = df["HIGH"] - df["LOW"]
+
+
+Example 2 — Calculate a simple moving average (5-day close):
+
+df["SMA_5"] = df["CLOSE"].rolling(5).mean()
+
+
+Example 3 — Add or subtract columns:
+
+df["SPREAD"] = df["HIGH"] - df["OPEN"]
+df["AVERAGE_PRICE"] = (df["OPEN"] + df["CLOSE"]) / 2
+
+🗓 Step 5: Optional — set date as index for easy plotting
+df = df.set_index("DATE")
+
+
+Now you can do things like:
+
+df["CLOSE"].plot(title="ALPH.UK Closing Prices")
+
+✅ Summary
+Goal	Code
+Load	df = pd.read_csv("path/to/file.txt")
+Clean headers	df.columns = df.columns.str.strip("<>").str.upper()
+Parse dates	df["DATE"] = pd.to_datetime(df["DATE"], format="%Y%m%d")
+Convert numbers	df[col] = pd.to_numeric(df[col])
+Math	df["RANGE"] = df["HIGH"] - df["LOW"]
+
+Would you like me to show you how to load multiple .txt files from that same folder (e.g. all *.uk.txt files) into one combined DataFrame for batch analysis?
+
+

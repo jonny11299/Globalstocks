@@ -1,0 +1,97 @@
+
+Woah, what is this macro folder storing? clearly these are a ton of  country codes, and each might have some important stock trade info in them.
+
+
+
+ChatGPT:
+
+Excellent eye — you just stumbled onto one of Stooq’s most interesting hidden gems.
+
+The macro folder isn’t about stocks, but rather about macroeconomic data for each country — things like GDP, inflation, unemployment, industrial production, consumer prices, and trade metrics.
+
+Here’s how to read it:
+
+🗺️ Folder structure
+
+You’re in:
+
+stooq/macro/
+
+
+and you listed:
+
+at  ca  de  fr  in  kr  nl  pl  sg  us
+...
+
+
+Each of these two-letter codes is a country code (ISO 3166-1 alpha-2):
+
+us → United States
+
+jp → Japan
+
+de → Germany
+
+br → Brazil
+
+uk → United Kingdom
+...and so on.
+
+Each country folder (like us/) contains time series text files — each one representing a different macroeconomic indicator.
+
+📊 Inside a country folder (like us/)
+
+You listed:
+
+gdpqus.m.txt
+unrtus.m.txt
+cpiyus.m.txt
+ppimus.m.txt
+ipimus.m.txt
+
+
+Each follows a naming convention:
+
+<indicator><country>.m.txt
+
+.m = monthly data (you may also see .q = quarterly, .y = yearly)
+
+.txt = plain-text time series, usually columns like:
+
+Date, Value, Change, ...
+
+🧮 Common indicator prefixes
+Prefix	Meaning	Example	Description
+gdpq	GDP, quarterly	gdpqus.m.txt	U.S. Gross Domestic Product (quarterly data)
+cpiy / cpim	Consumer Price Index	cpiyus.m.txt	Measures inflation
+ppim	Producer Price Index	ppimus.m.txt	Wholesale/producer inflation
+unrt	Unemployment rate	unrtus.m.txt	U.S. unemployment over time
+ipim	Industrial production	ipimus.m.txt	Factory output / manufacturing strength
+pcdy	Personal consumption	pcdyus.m.txt	Spending by consumers
+rsam / rsay	Retail sales	rsamus.m.txt	Retail activity (monthly/yearly)
+expm / impm	Exports / Imports	expmus.m.txt, impmus.m.txt	Trade data
+fgom / gvbg	Government finance	gvbgus.m.txt	Government budget, debt, or balance
+ulcy / ulcq	Unit labor cost	ulcyus.m.txt	Wages relative to productivity
+🧭 In plain English
+
+This folder is a macroeconomic dataset library, not stock market data.
+It’s like having access to OECD / FRED / World Bank-style indicators, all locally stored as simple text series.
+
+You can use it to:
+
+Compare economic indicators across countries (e.g., inflation vs. unemployment globally).
+
+Correlate market indices with macro data (e.g., Nikkei 225 vs. Japan GDP growth).
+
+Build macroeconomic dashboards or trading signals.
+
+🪄 Example: U.S. CPI vs. Unemployment
+
+If you plotted:
+
+cpiyus.m.txt (inflation)
+
+unrtus.m.txt (unemployment)
+you could recreate the Phillips curve or visualize stagflation periods.
+
+Would you like me to show you how to load and visualize one of these files (say cpiyus.m.txt) in Python to see what the data actually looks like and how far back it goes?

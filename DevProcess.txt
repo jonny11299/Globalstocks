@@ -1,0 +1,13 @@
+
+
+AI Usage:
+- I used Claude for data retrieval -- where can I find information like "the most economically active countries and stocks within that country over long date ranges?"
+- I used Claude to remind me of Python syntax for doing operations I know are possible. (I started in C++ before moving to Python).
+- I did NOT use AI for system architecture. I designed all of that independently -- each class, how they link, how they share info. I chose to build out tables of information based on what I knew was important.
+
+
+
+This analysis covers 9 major stock exchanges representing economies across North America, Europe, and Asia. While this represents a subset of global economic activity, the methodology demonstrated here is extensible to additional markets given access to their respective exchange data.
+
+
+
