@@ -12,6 +12,8 @@ from tickerSource import TickerSource
 print("--------------------------------------- NEW RUN OF test2.py ----------------------------------")
 
 
+
+
 # Returns a timestamp from 'd' days ago
 def daysago(d: int):
     return datetime.today() - timedelta(days=(d))
@@ -31,21 +33,27 @@ def datetimeTesting():
 
 def getFunctionTesting():
     nvda = Stonk()
-    print(f"days=1{nvda.getDayTrade(datetime.today() - timedelta(days=1))}")
-    print(f"days=3{nvda.getDayTrade(datetime.today() + timedelta(days=3))}")
-    print(f"days=101{nvda.getDayTrade(datetime.today() - timedelta(days=101))}")
-    print(f"days=981{nvda.getDayTrade(datetime.today() - timedelta(days=981))}")
-    print(f"days=9000{nvda.getDayTrade(datetime.today() - timedelta(days=9000))}")
-    print(f"days=6{nvda.getDayTrade(datetime.today() - timedelta(days=6))}")
-    print("\n\n\nGonna print myself fr this time: ")
-    nvda.print()
+    # print(f"days=1{nvda.getDayTrade(datetime.today() - timedelta(days=1))}")
+    # print(f"days=3{nvda.getDayTrade(datetime.today() + timedelta(days=3))}")
+    # print(f"days=101{nvda.getDayTrade(datetime.today() - timedelta(days=101))}")
+    # print(f"days=981{nvda.getDayTrade(datetime.today() - timedelta(days=981))}")
+    # print(f"days=9000{nvda.getDayTrade(datetime.today() - timedelta(days=9000))}")
+    # print(f"days=6{nvda.getDayTrade(datetime.today() - timedelta(days=6))}")
+    # print("\n\n\nGonna print myself fr this time: ")
+    # nvda.print()
+    print(f"testing day trade with 2000-01-01: \n{nvda.getDayTrade(datetime(2000, 1, 1))}")
+    print(f"testing day trade with 2000-01-02: \n{nvda.getDayTrade(datetime(2000, 1, 2))}")
+    print(f"testing day trade with 2000-01-03: \n{nvda.getDayTrade(datetime(2000, 1, 3))}")
+    print(f"testing day trade with 2000-01-04: \n{nvda.getDayTrade(datetime(2000, 1, 4))}")
     print("\n\n\n")
 
 
     print("Testing save feature:")
     stonk2 = Stonk("PRME")
-    stonk2.getDayTradeRange(datetime.today() - timedelta(days=(100)), datetime.today() - timedelta(days=(50)), True)
-    stonk2.getMonthTradeRange(datetime.today() - timedelta(days=(100)), datetime.today() - timedelta(days=(50)), True)
+    stonk2.getDayTradeRange(datetime.today() - timedelta(days=(100)), datetime.today() - timedelta(days=(80)), True)
+    stonk2.getDayTradeRange(datetime.today() - timedelta(days=(50)), datetime.today() - timedelta(days=(70)), True)
+    stonk2.getDayTradeRange(datetime.today() - timedelta(days=(65)), datetime.today() - timedelta(days=(85)), True)
+    # stonk2.getMonthTradeRange(datetime.today() - timedelta(days=(200)), datetime.today() - timedelta(days=(50)), True)
     stonk2.print()
 
 
@@ -54,6 +62,17 @@ def getFunctionTesting():
     stonk3 = Stonk("NVDA", "US")
     stonk3.getDayTradeRange(datetime(2000, 1, 1), datetime(2000, 3, 1), True)
     stonk3.print()
+
+
+    print("----------------------------------------------\n\n\n\n\n\n\n")
+
+    print("Testing monthly data features:")
+    stonk4 = Stonk("airi", "us")
+    stonk4.getMonthTradeRange(datetime.today() - timedelta(days=(400)), datetime.today() - timedelta(days=(80)), True)
+    stonk4.getMonthTradeRange(datetime.today() - timedelta(days=(500)), datetime.today() - timedelta(days=(300)), True)
+    stonk4.getMonthTradeRange(datetime.today() - timedelta(days=(1200)), datetime.today() - timedelta(days=(85)), True)
+    # stonk2.getMonthTradeRange(datetime.today() - timedelta(days=(200)), datetime.today() - timedelta(days=(50)), True)
+    stonk4.print()
 
     print()
     print()
@@ -78,7 +97,7 @@ def readingFromFilesTesting():
 
     # Now we call the actual class method
     print("Reading zoo.uk.txt")
-    stock2 = Stonk.fromfile("data/stooq/uk/lse stocks/zoo.uk.txt")
+    stock2 = Stonk("ZOO", "UK")
     stock2.print()
 
 
@@ -104,7 +123,6 @@ def nextTradingDayTest():
         nvda.nextTradingDay(day2)
 
 
-# readingFromFilesTesting()
 
 def tickerSourceTesting():
     src = TickerSource()
@@ -127,8 +145,35 @@ def tickerSourceTesting():
 
 
 
+def smarterFunctionsTesting():
+    date1 = datetime.today() - timedelta(days=101)
+    date2 = datetime.today() - timedelta(days=101 + 1*365)
+    date3 = datetime.today() - timedelta(days=50 + 4*365)
+    date4 = datetime.today() - timedelta(days=20 + 5*365)
+    date5 = datetime.today() - timedelta(days=40)
 
-tickerSourceTesting()
+    # test if we are storing our saved date ranges correctly
+    st = Stonk("NVDA", "US")
+    st.getDayTradeRange(date1, date2, True)
+    st.inRange(date1 + timedelta(days=5), date1 + timedelta(days=10))
+    st.inRange(date1 - timedelta(days=5), date1 + timedelta(days=10))
+    st.inRange(date1 - timedelta(days=5), date1 - timedelta(days=10))
+    st.getDayTradeRange(date3, date4, True)
+    st.inRange(date3 + timedelta(days=5), date3 + timedelta(days=10))
+    st.inRange(date3 - timedelta(days=5), date3 + timedelta(days=10))
+    st.inRange(date3 - timedelta(days=5), date3 - timedelta(days=10))
+    st.getDayTradeRange(date4, date5, True)
+    st.inRange(date4 + timedelta(days=5), date4 + timedelta(days=10))
+    st.inRange(date4 - timedelta(days=5), date5 + timedelta(days=10))
+    st.inRange(date4 - timedelta(days=5), date5 - timedelta(days=10))
+
+
+
+
+# tickerSourceTesting()
+getFunctionTesting()
+# readingFromFilesTesting()
+# smarterFunctionsTesting()
 
 # Alright, sick, I did it. I built a way to access the local files.
 # Now, I need to use this filepath to create a Stonk object

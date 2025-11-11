@@ -32,11 +32,14 @@ build_new_formatted_list = False
 # (wouldn't be the end of the world on modern machines, but let's be intentional here.)
 class TickerSource:
     df = None
+    lastUpdate = None  # Data last updated (downloaded) Nov 4, 2025
 
     def __init__(self):
         if TickerSource.df is None:
             print("Loading tickerSource dataframe")
             TickerSource.df = pd.read_csv(formatted_datapath)
+        if TickerSource.lastUpdate is None:
+            TickerSource.lastUpdate = datetime(year=2025, month=11, day=4)
         
         self.df = TickerSource.df
 
@@ -63,12 +66,19 @@ class TickerSource:
         # and 3 with quadruples.
         # This deal is a sure thing. I now own triples of the barracuda.
 
-    def getPath(self, ticker, country, printout=False):
+    
+    def getPath(self, ticker:str, country:str, printout=False):
         try:
             # my og code was foolish I guess
             # slice = self.df["COUNTRY" == country]["TICKER" == ticker]
             # filepath = slice["FILEPATH"].iloc[0]
             # slice = self.df[(self.df["COUNTRY"] == country) & (self.df["TICKER"] == ticker)]
+
+
+            # Paths are actually all lowercase. We're using uppercase in stonk.
+            ticker = ticker.lower()
+            country = country.lower()
+
             slice = self.df[(self.df["COUNTRY"] == country) & (self.df["TICKER"] == ticker)]
             topSlice = slice["FILEPATH"].iloc[0]
 
@@ -82,7 +92,7 @@ class TickerSource:
         except Exception as e:
             print(f"[Warning] ticker not found for {ticker}.{country}", end='\t')
             print(f" -- because of error {e}")
-            return "FAILED/PATH"
+            return None
         
     # Tests if os can actually find the file from getPath
     def testPath(self, ticker, country):
@@ -93,6 +103,10 @@ class TickerSource:
         else:
             print(f"NOT FOUND {ticker}.{country} \t at {testResult}")
             return False
+        
+        
+    def lastUpdated(self):
+        return TickerSource.lastUpdate
 
 
 

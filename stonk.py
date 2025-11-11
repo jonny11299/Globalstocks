@@ -10,70 +10,78 @@ TEST = True
 # Time to encapsulate some stock knowledge
 # This Stonk is a single stock. It only has one symbol. 
 
-# To make this from a local file, make sure you strip the "TICKER" symbol because it doesn't need to be copied across the entire column
 class Stonk:
-    def __init__(self, symb = "NVDA", country = "US"):
+    def __init__(self, ticker = "NVDA", country = "US"):
         # Stores the name of the stock. The Stooq library uses country codes like "NVDA.US" in the function call.
-        self.symb = f"{symb}.{country}"
+        self.ticker = ticker.upper()
+        self.country = country.upper()
+        self.symb = f"{ticker.upper()}.{country.upper()}"
         # Creates a blank dataframe for keeping stock data
-        self.day_df = pd.DataFrame(columns=["Date", "Open", "High", "Low", "Close", "Volume", "adjustedVolume"])               
-        self.month_df = pd.DataFrame(columns=["Date", "Open", "High", "Low", "Close", "Volume", "adjustedVolume"])
+        # They're actually stored in all UPPERCASE casing.
+        self.day_df = pd.DataFrame(columns=["Date", "Open", "High", "Low", "Close", "Volume"])               
+        self.month_df = pd.DataFrame(columns=["Date", "Open", "High", "Low", "Close", "Volume"])
         self.day_df.columns = self.day_df.columns.str.upper()
         self.month_df.columns = self.day_df.columns.str.upper()
         self.day_df["PER"] = "D"
         self.month_df["PER"] = "M"
 
+        self.savedDayRanges = []
+        self.savedMonthRanges = []
+
+        self.tsrc = TickerSource()
+        self.filepath = self.tsrc.getPath(ticker, country, True)
+        print(f"Initializing path for {self.symb}: '{self.filepath}'")
 
 
-    # Init from a filepath:
-    # To do this, for example, type the following: 
-    # stock = Stonk.from_txt("data/stooq/uk/lse stocks/alph.uk.txt")
-    @classmethod
-    def fromfile(cls, filepath):
+
+
+
+    # Returns a df of the entire stock at the given filepath
+    def fromFile(self, filepath, saveToLocal = False):
         try:
             df = pd.read_csv(filepath)
             print(f"Constructing from file {filepath}")
             # print(df.head(10))
             df.columns = df.columns.str.strip("<>").str.upper()
-            print(f"Printing at {filepath} post-strip")
-            print(df.head(10))
+            # print(f"Printing at {filepath} post-strip")
+            # print(df.head(10))
 
             # Formatting correctly
             df["DATE"] = pd.to_datetime(df["DATE"], format="%Y%m%d")
             for col in ["OPEN", "HIGH", "LOW", "CLOSE", "VOL", "OPENINT"]:
                 df[col] = pd.to_numeric(df[col])
 
+            df = df.rename(columns={"VOL": "VOLUME"})
+
             if df.size > 0:
                 # Constructing object now:
                 ticker = df.iloc[0]["TICKER"]
-                print("Ticker:")
-                print(ticker)
-                print(f"Type: {type(ticker)}")
-                symbol, countryCode = ticker.split(".") 
-                stonk = cls(symb=symbol, country=countryCode)
+                # print("Ticker:")
+                # print(ticker)
+                # print(f"Type: {type(ticker)}")
+                # symbol, countryCode = ticker.split(".")
 
-                # may result in weird behavior where, if the condition is invalid somehow, then
-                # all of the data just gets shoved into stonk.month_df, even though it's not 
+                # Dumps the stock if it's not daily or monthly trade info
                 per = df.iloc[0]["PER"]
-                if per == "D":
-                    stonk.day_df = df
-                elif per == "M":
-                    stonk.month_df = df
-                else:
-                    print(f"[Warning] stock data at {filepath} is not defind as Daily nor Monthly. Dumping {ticker}")
-                    failedstonk = cls(symb="FAIL", country="US")
-                    return failedstonk  
+                if saveToLocal:
+                    if per == "D":
+                        self._append_day_df(df)
+                        self.savedDayRanges.append(df["DATE"].min(), df["DATE"].max())
+                    elif per == "M":
+                        self._append_month_df(df)
+                        self.savedMonthRanges.append(df["DATE"].min(), df["DATE"].max())
+                    else:
+                        print(f"[Warning] stock data at {filepath} is not defind as Daily nor Monthly. Dumping {ticker}")
+                        return None
 
-                return stonk
+                return df
             
             else:
                 print(f"[Warning] stock data is empty at {filepath}")
 
         except Exception as e:
-            print(f"Failed to open from file, {e}")
-            # weird failure behavior but it returns a new stock, "FAIL.US"
-            failedstonk = cls(symb="FAIL", country="US")
-            return failedstonk
+            print(f"Failed to open from file at '{filepath}',\t {e}")
+            return None
 
     
 
@@ -89,36 +97,74 @@ class Stonk:
     ### Saving data:
 
     def _sort_day_df(self):
-        self.day_df = self.day_df.sort_values(by="Date", ascending=True).reset_index(drop=True)
+        self.day_df = self.day_df.sort_values(by="DATE", ascending=True).reset_index(drop=True)
 
     def _sort_month_df(self):
-        self.month_df = self.month_df.sort_values(by="Date", ascending=True).reset_index(drop=True)
+        self.month_df = self.month_df.sort_values(by="DATE", ascending=True).reset_index(drop=True)
 
-    # Flag sort as "true" if you want to sort it
-    def _append_day_df(self, dfin, sort=True):
+    
+    # Appends the df to month data, sorts it, and updates ranges
+    def _append_day_df(self, dfin):
         try:
             self.day_df = pd.concat([self.day_df, dfin], ignore_index=True)
-            if sort:
-                self._sort_day_df()
+            self._sort_day_df()
+            # Drop duplicates by DATE, keeping the first occurrence
+            self.day_df = self.day_df.drop_duplicates(subset="DATE", keep="first")
+
+            earliestDate = dfin["DATE"].min()
+            latestDate = dfin["DATE"].max()
+            self.savedDayRanges.append((earliestDate, latestDate))
+
+            # print(f"Saved date range: {self.savedDayRanges}")
+
         except Exception as e:
             print(f"Failed to append dataframe, {e}")
 
 
-    # Flag sort as "true" if you want to sort it
-    def _append_month_df(self, dfin, sort=True):
+    # Appends the df to month data, sorts it, and updates ranges
+    def _append_month_df(self, dfin):
         try:
             self.month_df = pd.concat([self.month_df, dfin], ignore_index=True)
-            if sort:
-                self._sort_month_df()
+            self._sort_month_df()
+            # Drop duplicates by DATE, keeping the first occurrence
+            self.month_df = self.month_df.drop_duplicates(subset="DATE", keep="first")
+
+            earliestDate = dfin["DATE"].min()
+            latestDate = dfin["DATE"].max()
+            self.savedMonthRanges.append((earliestDate, latestDate))
+
+            # print(f"Saved date range: {self.savedDayRanges}")
+
         except Exception as e:
             print(f"Failed to append dataframe, {e}")
 
+    
+    # Stores if an inputted date range is stored within this object's variables already
+    def inRange(self, day1, day2, per="D"):
+        if day1 > day2: # swap the values to ensure day1 is less than day2
+            day1, day2 = day2, day1 
 
+        isInRange = False
+        if per == "M":
+            for start, end in self.savedMonthRanges:
+                if day1 >= start and day2 <= end:
+                    isInRange = True
+        else:
+            for start, end in self.savedDayRanges:
+                if day1 >= start and day2 <= end:
+                    isInRange = True
+
+        # print(f"Range {day1}, {day2} is within this object's scope of {self.savedDayRanges} ? \n {isInRange}")
+        
+        return isInRange
+
+
+    
     # Stock market is not always open.
     # This function gets the next trading day available for (stock)
     # it basically casts a range from that day, forwards one week, and picks the earliest one available.
     # Limitation: Only works for past dates
-    # Will break if a stock holiday exceeds 1 week.
+    # Will break if a stock holiday exceeds 3 weeks.
     def nextTradingDay(self, day:datetime):
         df = self.getDayTradeRange(day, day + timedelta(days=7), False)
         if df == pd.DataFrame():
@@ -132,6 +178,44 @@ class Stonk:
             print("-------")
             print(f"Entire df: {df}")
         return date
+
+
+
+    # Division should be either:
+    # D for daily data
+    # M for monthly data
+    # Function assumes day2 is later than day1 and both days are in the past.
+    def getAPICall(self, day1:datetime, day2:datetime, division="D"):
+        url = "dummyURL"
+
+        # data validation
+        if division != "D" and division != "M":
+            print(f"[Warning] division is invalid in API call. Should be D or M, but is {division}")
+
+
+        try:
+            if division == "D":
+                url = f"https://stooq.com/q/d/l/?s={self.symb}&d1={day1:%Y%m%d}&d2={day2:%Y%m%d}&i=d"
+            elif division == "M":
+                url = f"https://stooq.com/q/d/l/?s={self.symb}&d1={day1:%Y%m%d}&d2={day2:%Y%m%d}&i=m"
+
+            df = (pd.read_csv(url, parse_dates=["Date"])
+                    .sort_values("Date"))
+            df.reset_index(drop=True)
+
+            # switch to upper
+            # add PER
+            df.columns = df.columns.str.upper()
+            df["PER"] = division #D for day, #M for month
+            
+            return df
+            
+        except Exception as e:
+            print(f"[Warning] Failed to fetch {self.symb} for {day1:%Y-%m-%d} to {day2:%Y-%m-%d} from url: {url}:\nerror: {e}")
+            return pd.DataFrame()  # return an empty frame instead of None
+
+
+
 
 
 
@@ -173,25 +257,11 @@ class Stonk:
             print(f"[Warning] trying to getDayTrade in the future: {day:%Y-%m-%d}")
             # Return an empty dataframe on this failed behavior:
             return pd.DataFrame()
+        
+        return self.getDayTradeRange(day, day, save)
 
-        try:
-            url = f"https://stooq.com/q/d/l/?s={self.symb}&d1={day:%Y%m%d}&d2={day:%Y%m%d}&i=d"
+        
 
-            df = (pd.read_csv(url, parse_dates=["Date"])
-                    .sort_values("Date"))
-            
-            # switch to upper
-            # add PER
-            df.columns = df.columns.str.upper()
-            df["PER"] = "D"
-            
-            if save: self._append_day_df(df, False) # don't sort by default
-
-            return df
-            
-        except Exception as e:
-            print(f"[Warning] Failed to fetch {self.symb} for {day:%Y-%m-%d} from url: {url}:\nerror: {e}")
-            return pd.DataFrame()  # return an empty frame instead of None
         
 
     # Returns a dataframe of daily trade activity for this symbol   
@@ -209,28 +279,38 @@ class Stonk:
                 # day1 is in the past, so just return for (day1: today)
                 day2 = datetime.today()
 
-        try:
-            url = f"https://stooq.com/q/d/l/?s={self.symb}&d1={day1:%Y%m%d}&d2={day2:%Y%m%d}&i=d"
+        day1 = day1.replace(hour=0, minute=0, second=0)
+        day2 = day2.replace(hour=23, minute=59, second=59)
 
-            df = (pd.read_csv(url, parse_dates=["Date"])
-                    .sort_values("Date"))
-            df.reset_index(drop=True)
+        # initialize empty
+        df = pd.DataFrame()
 
-            # switch to upper
-            # add PER
-            df.columns = df.columns.str.upper()
-            df["PER"] = "D"
-            
-            if save: self._append_day_df(df, False) # don't sort by default
-            
-            return df
-            
-        except Exception as e:
-            print(f"[Warning] Failed to fetch {self.symb} for {day:%Y-%m-%d} from url: {url}:\nerror: {e}")
-            return pd.DataFrame()  # return an empty frame instead of None
+        # Returns local data if it's already saved
+        if self.inRange(day1, day2):
+            # df = self.day_df[(self.day_df["DATE"] <= day2 and self.day_df["DATE"] >= day1)]
+            # from gpt: "Ah — good instinct! You’re super close — but there’s a subtle pandas gotcha here.
+            # You can’t use plain Python and or or inside a pandas filter, because those work on single boolean values, not arrays of booleans.""
+            df = self.day_df[(self.day_df["DATE"] <= day2) & (self.day_df["DATE"] >= day1)]
+            # print(f"Results from branch 1 : ")
+        elif day2 <= self.tsrc.lastUpdated():
+            # get the whole thing from downloaded files, then slice it
+            df_full = self.fromFile(self.filepath)
+            df = df_full[(df_full["DATE"] <= day2) & (df_full["DATE"] >= day1)]
+            # print(f"Results from branch 2 : ")
+        else:
+            # fall back to API call
+            df = self.getAPICall(day1, day2, "D")
+            # print(f"Results from branch 3 : ")
+        
+        if save: self._append_day_df(df)
+        
+        return df     
+
+
         
     # Returns a dataframe of monthly trade activity for this symbol
     def getMonthTradeRange(self, day1:datetime, day2:datetime, save = False) -> pd.DataFrame:
+        print("At least running this function i guess")
         if day1 > day2: # swap the values to ensure day1 is less than day2
             day1, day2 = day2, day1 
         # verify day is valid. Returns an empty dataframe if not.
@@ -244,25 +324,29 @@ class Stonk:
                 # day1 is in the past, so just return for (day1: today)
                 day2 = datetime.today()
 
-        try:
-            url = f"https://stooq.com/q/d/l/?s={self.symb}&d1={day1:%Y%m%d}&d2={day2:%Y%m%d}&i=m"
+        day1 = day1.replace(hour=0, minute=0, second=0)
+        day2 = day2.replace(hour=23, minute=59, second=59)
 
-            df = (pd.read_csv(url, parse_dates=["Date"])
-                    .sort_values("Date"))
-            df.reset_index(drop=True)
+        # initialize empty
+        df = pd.DataFrame()
 
-            # switch to upper
-            # add PER
-            df.columns = df.columns.str.upper()
-            df["PER"] = "M"
-            
-            if save: self._append_month_df(df, False) # don't sort
-            
-            return df
-            
-        except Exception as e:
-            print(f"[Warning] Failed to fetch {self.symb} for {day:%Y-%m-%d} from url: {url}:\nerror: {e}")
-            return pd.DataFrame()  # return an empty frame instead of None
+        # Returns local data if it's already saved
+        # Shoo, this doesn't read from files yet, only calls the API.
+        # I could make a function that aggregates the local files' daily info into monthly trade data...
+        # but let's keep our eyes on the prize.
+        if self.inRange(day1, day2, "M"):
+            # df = self.month_df[(self.month_df["DATE"] <= day2 and self.month_df["DATE"] >= day1)]
+            # from gpt: "Ah — good instinct! You’re super close — but there’s a subtle pandas gotcha here.
+            # You can’t use plain Python and or or inside a pandas filter, because those work on single boolean values, not arrays of booleans.""
+            df = self.month_df[(self.month_df["DATE"] <= day2) & (self.month_df["DATE"] >= day1)]
+        else:
+            # fall back to API call
+            df = self.getAPICall(day1, day2, "M")
+            # print(f"Monthly dataframe in branch 2 : \n{df}")
+        
+        if save: self._append_month_df(df)
+        
+        return df   
         
 
     def setDayTrade(self, day:datetime):
@@ -303,6 +387,17 @@ class Stonk:
 # Shouldn't be abusing stooq calls anyways...
 
 # We'll need to learn logging instead of printing everything out verbose.
+
+# 11/10/25:
+# Give it a flag that says "Local" or "API Access". 
+# Re-write the functions to work locally.
+# Holyyy shit I did it all today... I did that shit. Goal accomplished.
+# Pending problem -- Monthly trade data still falls back on the API. We should aggregate
+# daily data --> monthly in some function. However, I'm not going to do that right now.
+
+# Next, let's start making some graphs and charts.
+# I want to see pretty bar graphs of trading histories (candlestick charts)
+# I want to see OBV estimators
         
 
 '''On-Balance Volume (OBV)
